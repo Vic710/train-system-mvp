@@ -6,31 +6,21 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 def test_llm():
     try:
         from src.rag.llm_manager import LLMManager
+        from src.rag.retriever import RAGRetriever
         print("Testing LLM connection...")
         
         llm = LLMManager()
+        retriever = RAGRetriever()
         print("LLM Manager initialized successfully!")
         
-        # Test with simple context
-        simple_context = {
-            'section': {
-                'name': 'Test Section',
-                'track_type': 'Double Line',
-                'congestion_level': 'High',
-                'block_status': 'Occupied',
-                'power_status': 'Power Block',
-                'signal_status': 'Normal',
-                'weather_condition': 'Clear'
-            },
-            'trains': [],
-            'stations': [],
-            'external_factors': [],
-            'recent_incidents': []
-        }
+        # Get real context from database
+        context = retriever.get_current_section_snapshot(1)
+        historical = retriever.search_decisions_by_keywords(['power', 'delay'], limit=2)
         
+        print("Context retrieved, testing LLM...")
         suggestion = llm.generate_decision_suggestion(
-            simple_context,
-            [],
+            context,
+            historical,
             "Power failure affecting the section"
         )
         
@@ -40,6 +30,8 @@ def test_llm():
         
     except Exception as e:
         print(f"LLM Error: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 if __name__ == "__main__":
