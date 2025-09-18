@@ -14,6 +14,9 @@ class RAGRetriever:
         """
         Get complete current snapshot of a section including all relevant data
         """
+        print(f"\n🔍 RAG RETRIEVAL - Section Snapshot for ID: {section_id}")
+        print("=" * 60)
+        
         snapshot = {}
         
         # Get section details
@@ -21,6 +24,9 @@ class RAGRetriever:
         section_data = self.db.execute_query(section_query, (section_id,))
         if section_data:
             snapshot['section'] = section_data[0]
+            print(f"📍 Section: {section_data[0].get('name', 'Unknown')} (Track: {section_data[0].get('track_type', 'N/A')}, Congestion: {section_data[0].get('congestion_level', 'N/A')})")
+        else:
+            print("❌ Section not found!")
         
         # Get all trains in the section (simulated by getting trains of matching priority/type)
         trains_query = """
@@ -29,14 +35,17 @@ class RAGRetriever:
             LIMIT 10
         """
         snapshot['trains'] = self.db.execute_query(trains_query)
+        print(f"🚂 Retrieved {len(snapshot['trains'])} trains (ordered by priority)")
         
         # Get stations in the section
         stations_query = "SELECT * FROM Station WHERE section_id = ?"
         snapshot['stations'] = self.db.execute_query(stations_query, (section_id,))
+        print(f"🚉 Retrieved {len(snapshot['stations'])} stations in section")
         
         # Get external factors affecting the section
         external_factors_query = "SELECT * FROM ExternalFactors WHERE section_id = ?"
         snapshot['external_factors'] = self.db.execute_query(external_factors_query, (section_id,))
+        print(f"🌍 Retrieved {len(snapshot['external_factors'])} external factors")
         
         # Get recent incidents in the section (last 24 hours)
         yesterday = datetime.now() - timedelta(days=1)
@@ -46,7 +55,9 @@ class RAGRetriever:
             ORDER BY timestamp DESC
         """
         snapshot['recent_incidents'] = self.db.execute_query(incidents_query, (section_id, yesterday))
+        print(f"⚠️  Retrieved {len(snapshot['recent_incidents'])} recent incidents (last 24h)")
         
+        print(f"✅ RAG snapshot complete - Total data points: {len(snapshot)}")
         return snapshot
     
     def get_similar_historical_decisions(self, 
@@ -114,6 +125,10 @@ class RAGRetriever:
         """
         Search historical decisions by keywords in controller actions
         """
+        print(f"\n🔍 RAG HISTORICAL SEARCH")
+        print("=" * 40)
+        print(f"🔑 Keywords: {', '.join(keywords)}")
+        
         # Create LIKE conditions for each keyword
         conditions = " OR ".join(["controller_action LIKE ?" for _ in keywords])
         params = [f"%{keyword}%" for keyword in keywords]
@@ -127,7 +142,17 @@ class RAGRetriever:
             LIMIT {limit}
         """
         
-        return self.db.execute_query(query, tuple(params))
+        results = self.db.execute_query(query, tuple(params))
+        print(f"📊 Found {len(results)} historical decisions")
+        
+        for i, decision in enumerate(results[:3], 1):  # Log first 3 decisions
+            print(f"   {i}. Section: {decision.get('section_name', 'Unknown')} - Action: {decision.get('controller_action', 'N/A')[:50]}...")
+        
+        if len(results) > 3:
+            print(f"   ... and {len(results) - 3} more decisions")
+        
+        print("✅ Historical search complete")
+        return results
     
     def get_train_details(self, train_ids: List[int]) -> List[Dict[str, Any]]:
         """

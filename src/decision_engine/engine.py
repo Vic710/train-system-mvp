@@ -36,23 +36,25 @@ class DecisionEngine:
         current_context = self.retriever.get_current_section_snapshot(section_id)
         
         # Step 2: Retrieve similar historical decisions
-        print("2. Retrieving similar historical decisions...")
+        print("\n2. Retrieving similar historical decisions...")
         keywords = self._extract_keywords(issue_description)
+        print(f"🔑 Extracted keywords: {keywords}")
         historical_decisions = self.retriever.search_decisions_by_keywords(keywords, limit=5)
         
         # Step 3: Generate LLM suggestion (if available)
         llm_suggestion = None
         if self.llm_available:
-            print("3. Generating LLM suggestion...")
+            print("\n3. Generating LLM suggestion...")
             try:
                 llm_suggestion = self.llm_manager.generate_decision_suggestion(
                     current_context, historical_decisions, issue_description
                 )
+                print("✅ LLM suggestion generated successfully")
             except Exception as e:
-                print(f"Error generating LLM suggestion: {e}")
+                print(f"❌ Error generating LLM suggestion: {e}")
                 llm_suggestion = "LLM suggestion unavailable due to error"
         else:
-            print("3. LLM unavailable, using rule-based fallback...")
+            print("\n3. LLM unavailable, using rule-based fallback...")
             llm_suggestion = self._generate_rule_based_suggestion(current_context, issue_description)
         
         # Step 4: Prepare decision package

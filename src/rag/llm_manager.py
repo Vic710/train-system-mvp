@@ -28,6 +28,10 @@ class LLMManager:
         Generate decision suggestion based on current context and historical decisions
         """
         
+        print(f"\n🤖 LLM GENERATION - Preparing Input")
+        print("=" * 50)
+        print(f"📝 Issue: {issue_description}")
+        
         # Prepare the system prompt - enhanced for detailed section-wide analysis
         system_prompt = """You are an expert Railway Section Controller Supporter AI. Provide detailed, actionable railway operation decisions considering the ENTIRE section.
 
@@ -51,9 +55,12 @@ Be specific about:
 
         # Prepare current context
         context_text = self._format_current_context(current_context)
+        print(f"📊 Formatted context: {len(context_text)} characters")
         
         # Prepare historical decisions
         historical_text = self._format_historical_decisions(historical_decisions)
+        print(f"📚 Historical context: {len(historical_text)} characters")
+        print(f"🔍 Using {len(historical_decisions)} historical decisions")
         
         # Create the human message - enhanced for comprehensive analysis
         human_prompt = f"""
@@ -80,8 +87,45 @@ Provide a comprehensive section controller decision with detailed coordination p
             HumanMessage(content=human_prompt)
         ]
         
+        # Log the final prompt being sent to LLM
+        print(f"\n📤 SENDING TO LLM:")
+        print(f"   System prompt: {len(system_prompt)} characters")
+        print(f"   Human prompt: {len(human_prompt)} characters")
+        print(f"   Total input: {len(system_prompt) + len(human_prompt)} characters")
+        print("\n📋 CONTEXT SUMMARY BEING SENT:")
+        
+        # Log key parts of the context being sent
+        if 'section' in current_context:
+            section = current_context['section']
+            print(f"   🚉 Section: {section.get('name', 'N/A')} ({section.get('track_type', 'N/A')})")
+        
+        if 'trains' in current_context:
+            print(f"   🚂 Trains: {len(current_context['trains'])} trains included")
+            # Show priority distribution
+            priority_counts = {}
+            for train in current_context['trains']:
+                priority = train.get('priority', 'Unknown')
+                priority_counts[priority] = priority_counts.get(priority, 0) + 1
+            print(f"   📊 Priority breakdown: {dict(priority_counts)}")
+        
+        if 'stations' in current_context:
+            print(f"   🚉 Stations: {len(current_context['stations'])} stations")
+        
+        if 'external_factors' in current_context:
+            print(f"   🌍 External factors: {len(current_context['external_factors'])} factors")
+        
+        if 'recent_incidents' in current_context:
+            print(f"   ⚠️  Recent incidents: {len(current_context['recent_incidents'])} incidents")
+        
+        print(f"   📚 Historical decisions: {len(historical_decisions)} similar cases")
+        print("\n🚀 Calling Google Gemini...")
+        
         # Generate response
         response = self.llm.invoke(messages)
+        
+        print(f"✅ LLM Response received: {len(response.content)} characters")
+        print("=" * 50)
+        
         return response.content
     
     def _format_current_context(self, context: Dict[str, Any]) -> str:
